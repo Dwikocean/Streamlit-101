@@ -14,7 +14,7 @@ except FileNotFoundError:
     df_transactions = pd.DataFrame(columns=['Transaction ID', 'Product', 'Quantity', 'Total'])
 
 # Fungsi untuk menambahkan transaksi
-def add_transaction(product, quantity):
+def add_transaction(df_transactions, product, quantity):
     product_data = df_products[df_products['Product'] == product].iloc[0]
     total = product_data['Price'] * quantity
     new_transaction = {
@@ -40,10 +40,9 @@ product_option = st.selectbox('Pilih Produk', df_products['Product'])
 quantity = st.number_input('Jumlah', min_value=1, step=1)
 
 if st.button('Tambah Transaksi'):
-    df_transactions = add_transaction(product_option, quantity)
+    df_transactions = add_transaction(df_transactions, product_option, quantity)
     st.success('Transaksi berhasil ditambahkan')
 
 # Menampilkan laporan transaksi
 st.header('Laporan Transaksi')
 st.write(df_transactions)
-
