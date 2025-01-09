@@ -1,0 +1,50 @@
+import streamlit as st
+import pandas as pd
+
+# Data awal
+data_keuangan = {
+    "Tanggal": [],
+    "Jenis": [],
+    "Keterangan": [],
+    "Jumlah": []
+}
+
+# Membuat DataFrame
+df = pd.DataFrame(data_keuangan)
+
+st.title("Manajemen Keuangan UMKM")
+
+# Input data transaksi
+st.subheader("Tambah Transaksi")
+tanggal = st.text_input("Tanggal (YYYY-MM-DD)")
+jenis = st.selectbox("Jenis Transaksi", ["Pendapatan", "Pengeluaran"])
+keterangan = st.text_input("Keterangan")
+jumlah = st.text_input("Jumlah (Rp)")
+
+if st.button("Tambah Transaksi"):
+    if not (tanggal and jenis and keterangan and jumlah):
+        st.error("Semua kolom harus diisi!")
+    else:
+        try:
+            jumlah = float(jumlah)
+            new_data = {"Tanggal": tanggal, "Jenis": jenis, "Keterangan": keterangan, "Jumlah": jumlah}
+            global df
+            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+            st.success("Transaksi berhasil ditambahkan!")
+        except ValueError:
+            st.error("Jumlah harus berupa angka!")
+
+# Menampilkan laporan keuangan
+st.subheader("Laporan Keuangan")
+if st.button("Lihat Laporan"):
+    if df.empty:
+        st.info("Belum ada data keuangan.")
+    else:
+        st.write(df)
+        total_pendapatan = df[df["Jenis"] == "Pendapatan"]["Jumlah"].sum()
+        total_pengeluaran = df[df["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
+        saldo = total_pendapatan - total_pengeluaran
+
+        st.write(f"**Total Pendapatan:** Rp {total_pendapatan:.2f}")
+        st.write(f"**Total Pengeluaran:** Rp {total_pengeluaran:.2f}")
+        st.write(f"**Saldo Akhir:** Rp {saldo:.2f}")
