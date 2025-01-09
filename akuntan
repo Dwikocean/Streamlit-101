@@ -1,113 +1,72 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import streamlit as st
 import pandas as pd
+from datetime import date
 
-# Data awal
-data_keuangan = {
-    "Tanggal": [],
-    "Jenis": [],
-    "Keterangan": [],
-    "Jumlah": []
-}
+# Setup title
+st.title("Aplikasi Manajemen Keuangan UMKM")
 
-# Membuat DataFrame
-df = pd.DataFrame(data_keuangan)
+# Sidebar untuk navigasi
+menu = st.sidebar.selectbox("Pilih Menu", ["Pencatatan Transaksi", "Laporan Keuangan"])
 
-def tambah_transaksi():
-    """Fungsi untuk menambahkan transaksi ke DataFrame."""
-    global df
-    tanggal = entry_tanggal.get()
-    jenis = combo_jenis.get()
-    keterangan = entry_keterangan.get()
-    jumlah = entry_jumlah.get()
-    
-    if not (tanggal and jenis and keterangan and jumlah):
-        messagebox.showerror("Error", "Semua kolom harus diisi!")
-        return
+# File CSV untuk menyimpan data
+data_file = "keuangan_umkm.csv"
 
+# Fungsi untuk memuat data
+def load_data():
     try:
-        jumlah = float(jumlah)
-    except ValueError:
-        messagebox.showerror("Error", "Jumlah harus berupa angka!")
-        return
+        return pd.read_csv(data_file)
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["Tanggal", "Jenis", "Keterangan", "Jumlah"])
 
-    transaksi = {
-        "Tanggal": tanggal,
-        "Jenis": jenis,
-        "Keterangan": keterangan,
-        "Jumlah": jumlah
-    }
-    df = pd.concat([df, pd.DataFrame([transaksi])], ignore_index=True)
-    messagebox.showinfo("Sukses", "Transaksi berhasil ditambahkan!")
-    clear_entries()
+# Fungsi untuk menyimpan data
+def save_data(data):
+    data.to_csv(data_file, index=False)
 
-def tampilkan_laporan():
-    """Fungsi untuk menampilkan laporan keuangan."""
-    global df
-    if df.empty:
-        messagebox.showinfo("Laporan Keuangan", "Belum ada data keuangan.")
-        return
-    
-    total_pendapatan = df[df["Jenis"] == "Pendapatan"]["Jumlah"].sum()
-    total_pengeluaran = df[df["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
-    saldo = total_pendapatan - total_pengeluaran
+# Menu Pencatatan Transaksi
+if menu == "Pencatatan Transaksi":
+    st.header("Pencatatan Transaksi")
 
-    laporan = df.to_string(index=False)
-    laporan += f"\n\nTotal Pendapatan: Rp {total_pendapatan:.2f}"
-    laporan += f"\nTotal Pengeluaran: Rp {total_pengeluaran:.2f}"
-    laporan += f"\nSaldo Akhir: Rp {saldo:.2f}"
+    # Input data transaksi
+    with st.form("form_transaksi"):
+        tanggal = st.date_input("Tanggal", value=date.today())
+        jenis = st.radio("Jenis Transaksi", ["Pemasukan", "Pengeluaran"])
+        keterangan = st.text_input("Keterangan")
+        jumlah = st.number_input("Jumlah", min_value=0, step=1000)
+        submit = st.form_submit_button("Simpan")
 
-    messagebox.showinfo("Laporan Keuangan", laporan)
+    if submit:
+        # Load existing data
+        data = load_data()
+        # Tambahkan data baru
+        new_data = pd.DataFrame([[tanggal, jenis, keterangan, jumlah]], columns=["Tanggal", "Jenis", "Keterangan", "Jumlah"])
+        data = pd.concat([data, new_data], ignore_index=True)
+        save_data(data)
+        st.success("Transaksi berhasil disimpan!")
 
-def clear_entries():
-    """Mengosongkan semua input form."""
-    entry_tanggal.delete(0, tk.END)
-    combo_jenis.set("")
-    entry_keterangan.delete(0, tk.END)
-    entry_jumlah.delete(0, tk.END)
+# Menu Laporan Keuangan
+elif menu == "Laporan Keuangan":
+    st.header("Laporan Keuangan")
 
-# Membuat jendela utama
-root = tk.Tk()
-root.title("Manajemen Keuangan UMKM")
-root.geometry("400x400")
-root.resizable(False, False)
+    # Load data
+    data = load_data()
 
-# Label judul
-title_label = tk.Label(root, text="Manajemen Keuangan UMKM", font=("Arial", 16, "bold"))
-title_label.pack(pady=10)
+    if not data.empty:
+        # Tampilkan tabel data
+        st.subheader("Data Transaksi")
+        st.dataframe(data)
 
-# Form input
-frame_form = tk.Frame(root)
-frame_form.pack(pady=10)
+        # Total pemasukan dan pengeluaran
+        total_pemasukan = data[data["Jenis"] == "Pemasukan"]["Jumlah"].sum()
+        total_pengeluaran = data[data["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
+        saldo = total_pemasukan - total_pengeluaran
 
-tk.Label(frame_form, text="Tanggal (YYYY-MM-DD):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-entry_tanggal = tk.Entry(frame_form, width=30)
-entry_tanggal.grid(row=0, column=1, padx=5, pady=5)
+        # Tampilkan ringkasan
+        st.subheader("Ringkasan Keuangan")
+        st.metric("Total Pemasukan", f"Rp {total_pemasukan:,.0f}")
+        st.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,.0f}")
+        st.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
+    else:
+        st.warning("Belum ada data transaksi!")
 
-tk.Label(frame_form, text="Jenis Transaksi:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-combo_jenis = ttk.Combobox(frame_form, values=["Pendapatan", "Pengeluaran"], width=28)
-combo_jenis.grid(row=1, column=1, padx=5, pady=5)
-
-tk.Label(frame_form, text="Keterangan:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-entry_keterangan = tk.Entry(frame_form, width=30)
-entry_keterangan.grid(row=2, column=1, padx=5, pady=5)
-
-tk.Label(frame_form, text="Jumlah (Rp):").grid(row=3, column=0, sticky="w", padx=5, pady=5)
-entry_jumlah = tk.Entry(frame_form, width=30)
-entry_jumlah.grid(row=3, column=1, padx=5, pady=5)
-
-# Tombol
-frame_buttons = tk.Frame(root)
-frame_buttons.pack(pady=10)
-
-btn_tambah = tk.Button(frame_buttons, text="Tambah Transaksi", command=tambah_transaksi, width=18, bg="green", fg="white")
-btn_tambah.grid(row=0, column=0, padx=5, pady=5)
-
-btn_laporan = tk.Button(frame_buttons, text="Lihat Laporan", command=tampilkan_laporan, width=18, bg="blue", fg="white")
-btn_laporan.grid(row=0, column=1, padx=5, pady=5)
-
-btn_keluar = tk.Button(root, text="Keluar", command=root.quit, width=40, bg="red", fg="white")
-btn_keluar.pack(pady=10)
-
-# Menjalankan aplikasi
-root.mainloop()
+# Informasi tambahan
+st.sidebar.info("Dibuat dengan Streamlit untuk membantu UMKM mencatat keuangan.")
