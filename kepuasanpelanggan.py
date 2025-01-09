@@ -36,10 +36,26 @@ def add_expense(tanggal, deskripsi, jumlah, harga_total, file_name):
     data = pd.concat([data, new_data], ignore_index=True)
     data.to_csv(file_name, index=False)
 
+# Fungsi untuk menghitung total keuntungan kotor
+def calculate_gross_profit():
+    data_transaksi = load_data(TRANSAKSI_FILE)
+    return data_transaksi["Harga Total"].sum()
+
+# Fungsi untuk menghitung total pengeluaran
+def calculate_total_expenses():
+    data_pengeluaran = load_data(PENGELUARAN_FILE)
+    return data_pengeluaran["Harga Total"].sum()
+
+# Fungsi untuk menghitung keuntungan bersih
+def calculate_net_profit():
+    gross_profit = calculate_gross_profit()
+    total_expenses = calculate_total_expenses()
+    return gross_profit - total_expenses
+
 # Streamlit UI
 st.title("Aplikasi UMKM F&B - Pencatatan Transaksi & Pengeluaran")
 
-menu = ["Input Transaksi", "Input Pengeluaran", "Lihat Transaksi", "Lihat Pengeluaran"]
+menu = ["Input Transaksi", "Input Pengeluaran", "Lihat Transaksi", "Lihat Pengeluaran", "Lihat Keuntungan"]
 choice = st.sidebar.selectbox("Pilih Menu", menu)
 
 # Input Transaksi
@@ -89,3 +105,16 @@ elif choice == "Lihat Pengeluaran":
     st.header("Data Pengeluaran")
     data_pengeluaran = load_data(PENGELUARAN_FILE)
     st.write(data_pengeluaran)
+
+# Lihat Keuntungan
+elif choice == "Lihat Keuntungan":
+    st.header("Keuntungan")
+    
+    # Hitung Keuntungan Kotor dan Bersih
+    gross_profit = calculate_gross_profit()
+    net_profit = calculate_net_profit()
+    
+    # Tampilkan Keuntungan
+    st.write(f"Total Keuntungan Kotor: Rp {gross_profit:,}")
+    st.write(f"Total Pengeluaran: Rp {calculate_total_expenses():,}")
+    st.write(f"Total Keuntungan Bersih: Rp {net_profit:,}")
