@@ -1,53 +1,41 @@
 import streamlit as st
 import pandas as pd
-import random
-import faker
 
 # Fungsi untuk mengolah data kepuasan pelanggan
 def analyze_feedback(feedback_data):
     # Menghitung rata-rata skor kepuasan
-    average_score = feedback_data['Skor Kepuasan'].mean()
+    average_score = feedback_data['Score'].mean()
     
     # Menghitung distribusi nilai skor
-    score_distribution = feedback_data['Skor Kepuasan'].value_counts().sort_index()
+    score_distribution = feedback_data['Score'].value_counts().sort_index()
     
     return average_score, score_distribution
 
-# Membuat data fiktif dengan menggunakan Faker
-fake = faker.Faker('id_ID')
-
-# Menentukan jumlah data yang akan dibuat (20 data)
-num_data = 20
-
-# Membuat kolom-kolom yang diperlukan
-data = {
-    "ID": [i+1 for i in range(num_data)],
-    "Nama Pelanggan": [fake.name() for _ in range(num_data)],
-    "Skor Kepuasan": [random.randint(1, 5) for _ in range(num_data)],  # Skor dari 1 hingga 5
-    "Ulasan": [fake.sentence(nb_words=random.randint(6, 12)) for _ in range(num_data)]
-}
-
-# Membuat DataFrame
-df = pd.DataFrame(data)
-
 # Streamlit UI
-st.title('Aplikasi Analisis Kepuasan Pelanggan UMKM F&B')
+st.title('Aplikasi Analisis Kepuasan Pelanggan')
 
-# Menampilkan data feedback pelanggan
-st.write("Data Feedback Pelanggan:")
-st.write(df)
+# Upload file CSV dengan data feedback pelanggan
+uploaded_file = st.file_uploader("Unggah File Feedback Pelanggan (CSV)", type="csv")
 
-# Analisis data kepuasan pelanggan
-average_score, score_distribution = analyze_feedback(df)
-
-# Menampilkan hasil analisis
-st.write(f"Rata-rata Skor Kepuasan Pelanggan: {average_score:.2f}")
-
-# Menampilkan distribusi nilai skor
-st.write("Distribusi Skor Kepuasan Pelanggan:")
-st.bar_chart(score_distribution)
-
-# Menyimpan data ke file CSV
-csv_file = "feedback_pelanggan_umkm_fnb.csv"
-df.to_csv(csv_file, index=False, encoding="utf-8")
-st.download_button(label="Unduh Data Feedback Pelanggan (CSV)", data=open(csv_file, "rb"), file_name=csv_file)
+if uploaded_file is not None:
+    # Membaca data feedback pelanggan
+    feedback_data = pd.read_csv(uploaded_file)
+    
+    # Tampilkan data jika ingin
+    st.write("Data Feedback Pelanggan:")
+    st.write(feedback_data)
+    
+    # Pastikan ada kolom 'Score'
+    if 'Score' in feedback_data.columns:
+        average_score, score_distribution = analyze_feedback(feedback_data)
+        
+        # Menampilkan hasil analisis
+        st.write(f"Rata-rata Skor Kepuasan Pelanggan: {average_score:.2f}")
+        
+        # Menampilkan distribusi nilai skor
+        st.write("Distribusi Skor Kepuasan Pelanggan:")
+        st.bar_chart(score_distribution)
+    else:
+        st.warning("Kolom 'Score' tidak ditemukan dalam data!")
+else:
+    st.info("Silakan unggah file CSV yang berisi data feedback pelanggan.")
