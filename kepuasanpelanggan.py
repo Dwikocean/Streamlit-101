@@ -1,20 +1,15 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # Fungsi untuk mengolah data kepuasan pelanggan
 def analyze_feedback(feedback_data):
     # Menghitung rata-rata skor kepuasan
     average_score = feedback_data['Score'].mean()
     
-    # Visualisasi kepuasan pelanggan
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.hist(feedback_data['Score'], bins=10, color='skyblue', edgecolor='black')
-    ax.set_title('Distribusi Skor Kepuasan Pelanggan')
-    ax.set_xlabel('Skor Kepuasan')
-    ax.set_ylabel('Frekuensi')
+    # Menghitung distribusi nilai skor
+    score_distribution = feedback_data['Score'].value_counts().sort_index()
     
-    return average_score, fig
+    return average_score, score_distribution
 
 # Streamlit UI
 st.title('Aplikasi Analisis Kepuasan Pelanggan')
@@ -32,11 +27,14 @@ if uploaded_file is not None:
     
     # Pastikan ada kolom 'Score'
     if 'Score' in feedback_data.columns:
-        average_score, fig = analyze_feedback(feedback_data)
+        average_score, score_distribution = analyze_feedback(feedback_data)
         
         # Menampilkan hasil analisis
         st.write(f"Rata-rata Skor Kepuasan Pelanggan: {average_score:.2f}")
-        st.pyplot(fig)
+        
+        # Menampilkan distribusi nilai skor
+        st.write("Distribusi Skor Kepuasan Pelanggan:")
+        st.bar_chart(score_distribution)
     else:
         st.warning("Kolom 'Score' tidak ditemukan dalam data!")
 else:
