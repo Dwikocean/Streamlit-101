@@ -16,7 +16,21 @@ def load_data():
     try:
         return pd.read_csv(data_file)
     except FileNotFoundError:
-        return pd.DataFrame(columns=["Tanggal", "Jenis", "Keterangan", "Jumlah"])
+        # Data dummy jika file tidak ditemukan
+        dummy_data = {
+            "Tanggal": ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", 
+                        "2024-01-06", "2024-01-07", "2024-01-08"],
+            "Jenis": ["Pemasukan", "Pemasukan", "Pengeluaran", "Pemasukan", "Pengeluaran", 
+                      "Pemasukan", "Pengeluaran", "Pemasukan"],
+            "Keterangan": ["Penjualan Produk A", "Penjualan Produk B", "Gaji Karyawan", 
+                           "Penjualan Produk C", "Sewa Ruang Toko", "Penjualan Produk D", 
+                           "Biaya Iklan", "Penjualan Produk E"],
+            "Jumlah": [500000, 300000, 150000, 750000, 200000, 600000, 50000, 400000],
+            "Status Pembayaran": ["Sudah Dibayar", "Belum Dibayar", "Belum Dibayar", 
+                                  "Sudah Dibayar", "Sudah Dibayar", "Sudah Dibayar", 
+                                  "Belum Dibayar", "Sudah Dibayar"]
+        }
+        return pd.DataFrame(dummy_data)
 
 # Fungsi untuk menyimpan data
 def save_data(data):
@@ -32,13 +46,15 @@ if menu == "Pencatatan Transaksi":
         jenis = st.radio("Jenis Transaksi", ["Pemasukan", "Pengeluaran"])
         keterangan = st.text_input("Keterangan")
         jumlah = st.number_input("Jumlah", min_value=0, step=1000)
+        status_pembayaran = st.radio("Status Pembayaran", ["Belum Dibayar", "Sudah Dibayar"])
         submit = st.form_submit_button("Simpan")
 
     if submit:
         # Load existing data
         data = load_data()
         # Tambahkan data baru
-        new_data = pd.DataFrame([[tanggal, jenis, keterangan, jumlah]], columns=["Tanggal", "Jenis", "Keterangan", "Jumlah"])
+        new_data = pd.DataFrame([[tanggal, jenis, keterangan, jumlah, status_pembayaran]], 
+                                columns=["Tanggal", "Jenis", "Keterangan", "Jumlah", "Status Pembayaran"])
         data = pd.concat([data, new_data], ignore_index=True)
         save_data(data)
         st.success("Transaksi berhasil disimpan!")
@@ -65,8 +81,13 @@ elif menu == "Laporan Keuangan":
         st.metric("Total Pemasukan", f"Rp {total_pemasukan:,.0f}")
         st.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,.0f}")
         st.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
+
+        # Verifikasi Pembayaran
+        belum_dibayar = data[data["Status Pembayaran"] == "Belum Dibayar"]
+        st.subheader(f"Verifikasi Pembayaran ({len(belum_dibayar)} transaksi belum dibayar)")
+        st.dataframe(belum_dibayar)
     else:
         st.warning("Belum ada data transaksi!")
 
 # Informasi tambahan
-st.sidebar.info("Dibuat dengan Streamlit untuk membantu UMKM mencatat keuangan.")
+st.sidebar.info("DWIKI AKA QADA (@dwikocean)")
