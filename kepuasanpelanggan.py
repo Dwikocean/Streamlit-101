@@ -1,20 +1,14 @@
-# Instalasi Library Tambahan
-!apt-get update
-!apt-get install -y libzbar0
-!pip install qrcode[pil] opencv-python-headless pyzbar pandas matplotlib tabulate streamlit
+# app.py
 
-# Simpan kode ini sebagai file bernama "app.py" untuk menjalankan Streamlit di Google Colab.
-
-# Import Library
 import qrcode
 import cv2
 from pyzbar.pyzbar import decode
 from PIL import Image
 import pandas as pd
-import matplotlib.pyplot as plt
 import streamlit as st
+import matplotlib.pyplot as plt
 
-# Data Dummy Transaksi
+# Fungsi untuk membuat data dummy transaksi
 def create_dummy_database():
     data = {
         "order_id": [123456 + i for i in range(10)],
@@ -27,13 +21,13 @@ def create_dummy_database():
     }
     return pd.DataFrame(data)
 
-# Fungsi Membuat QR Code
+# Fungsi untuk membuat QR Code
 def generate_qr_code(payment_data, file_name="payment_qr.png"):
     qr = qrcode.make(payment_data)
     qr.save(file_name)
     return file_name
 
-# Fungsi Memindai QR Code
+# Fungsi untuk memindai QR Code
 def scan_qr_code(file_name):
     img = cv2.imread(file_name)
     decoded_objects = decode(img)
@@ -42,21 +36,19 @@ def scan_qr_code(file_name):
         return data
     return None
 
-# Fungsi Verifikasi Pembayaran
+# Fungsi untuk memverifikasi pembayaran berdasarkan URL
 def verify_payment(database, payment_url):
-    # Cek apakah URL pembayaran ada di database
     match = database[database["payment_url"] == payment_url]
     if not match.empty:
         index = match.index[0]
         if database.at[index, "status"] == "unpaid":
-            # Perbarui status menjadi paid
             database.at[index, "status"] = "paid"
             return "Verified: Paid"
         elif database.at[index, "status"] == "paid":
             return "Already Paid"
     return "Not Found"
 
-# Fungsi Menjalankan Simulasi dan Verifikasi
+# Fungsi untuk simulasi verifikasi pembayaran
 def simulate_verification(database):
     results = []
     for idx, row in database.iterrows():
@@ -67,16 +59,16 @@ def simulate_verification(database):
         results.append([idx + 1, scanned_data or "Invalid QR Code", verification_status])
     return results, database
 
-# Main Dashboard with Streamlit
+# Fungsi utama untuk menampilkan dashboard dengan Streamlit
 def main():
     st.title("Payment Verification Dashboard")
     
-    # 1. Membuat database dummy
+    # Membuat database transaksi dummy
     database = create_dummy_database()
     st.subheader("Initial Database")
     st.dataframe(database)
 
-    # 2. Simulasi verifikasi pembayaran
+    # Menjalankan simulasi verifikasi pembayaran
     st.subheader("Simulating Payment Verification...")
     results, updated_database = simulate_verification(database)
     
