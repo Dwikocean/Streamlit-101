@@ -6,16 +6,25 @@ from datetime import datetime
 TRANSAKSI_FILE = 'transaksi.csv'
 PENGELUARAN_FILE = 'pengeluaran.csv'
 
+# Daftar produk ayam beserta harga
+produk_ayam = {
+    "Ayam Goreng 1 Porsi": 15000,
+    "Ayam Bakar 1 Porsi": 17000,
+    "Ayam Penyet 1 Porsi": 16000,
+    "Nasi Ayam Goreng": 20000,
+    "Nasi Ayam Bakar": 22000
+}
+
 # Fungsi untuk memuat data transaksi dan pengeluaran
 def load_data(file_name):
     try:
         return pd.read_csv(file_name)
     except FileNotFoundError:
-        return pd.DataFrame(columns=["Tanggal", "Deskripsi", "Jumlah", "Harga Total"])
+        return pd.DataFrame(columns=["Tanggal", "Produk", "Jumlah", "Harga Total"])
 
 # Fungsi untuk menambahkan transaksi
-def add_transaction(tanggal, deskripsi, jumlah, harga_total, file_name):
-    new_data = pd.DataFrame({"Tanggal": [tanggal], "Deskripsi": [deskripsi], "Jumlah": [jumlah], "Harga Total": [harga_total]})
+def add_transaction(tanggal, produk, jumlah, harga_total, file_name):
+    new_data = pd.DataFrame({"Tanggal": [tanggal], "Produk": [produk], "Jumlah": [jumlah], "Harga Total": [harga_total]})
     data = load_data(file_name)
     data = pd.concat([data, new_data], ignore_index=True)
     data.to_csv(file_name, index=False)
@@ -35,14 +44,26 @@ choice = st.sidebar.selectbox("Pilih Menu", menu)
 
 # Input Transaksi
 if choice == "Input Transaksi":
-    st.header("Tambah Transaksi")
-    tanggal = st.date_input("Tanggal Transaksi", datetime.today())
-    deskripsi = st.text_input("Deskripsi Barang")
-    jumlah = st.number_input("Jumlah", min_value=1)
-    harga_total = st.number_input("Harga Total", min_value=1)
+    st.header("Tambah Transaksi (Kasir)")
+
+    # Pilih produk ayam dari dropdown
+    produk = st.selectbox("Pilih Produk", list(produk_ayam.keys()))
     
+    # Input jumlah
+    jumlah = st.number_input("Jumlah", min_value=1, step=1)
+
+    # Kalkulasi total harga
+    harga_per_unit = produk_ayam[produk]
+    harga_total = harga_per_unit * jumlah
+
+    # Tampilkan harga per unit dan total harga
+    st.write(f"Harga per Unit: Rp {harga_per_unit:,}")
+    st.write(f"Total Harga: Rp {harga_total:,}")
+
+    # Simpan transaksi jika tombol ditekan
     if st.button("Simpan Transaksi"):
-        add_transaction(tanggal, deskripsi, jumlah, harga_total, TRANSAKSI_FILE)
+        tanggal = datetime.today().strftime('%Y-%m-%d')
+        add_transaction(tanggal, produk, jumlah, harga_total, TRANSAKSI_FILE)
         st.success("Transaksi berhasil disimpan!")
 
 # Input Pengeluaran
