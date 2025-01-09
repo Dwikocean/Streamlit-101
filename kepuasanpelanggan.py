@@ -1,61 +1,70 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
+from datetime import datetime
 
-# Fungsi untuk menghitung total transaksi
-def hitung_total(cart):
-    total = 0
-    for item in cart:
-        total += item['harga'] * item['jumlah']
-    return total
+# Inisialisasi file CSV untuk menyimpan data transaksi dan pengeluaran
+TRANSAKSI_FILE = 'transaksi.csv'
+PENGELUARAN_FILE = 'pengeluaran.csv'
 
-# Judul Aplikasi
-st.title('Aplikasi Kasir UMKM F&B')
+# Fungsi untuk memuat data transaksi dan pengeluaran
+def load_data(file_name):
+    try:
+        return pd.read_csv(file_name)
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["Tanggal", "Deskripsi", "Jumlah", "Harga Total"])
 
-# Upload File Produk
-uploaded_file = st.file_uploader("Upload file produk Excel", type=["xlsx"])
+# Fungsi untuk menambahkan transaksi
+def add_transaction(tanggal, deskripsi, jumlah, harga_total, file_name):
+    new_data = pd.DataFrame({"Tanggal": [tanggal], "Deskripsi": [deskripsi], "Jumlah": [jumlah], "Harga Total": [harga_total]})
+    data = load_data(file_name)
+    data = pd.concat([data, new_data], ignore_index=True)
+    data.to_csv(file_name, index=False)
 
-if uploaded_file is not None:
-    # Membaca file yang di-upload
-    produk_df = pd.read_excel(uploaded_file)
+# Fungsi untuk menambahkan pengeluaran
+def add_expense(tanggal, deskripsi, jumlah, harga_total, file_name):
+    new_data = pd.DataFrame({"Tanggal": [tanggal], "Deskripsi": [deskripsi], "Jumlah": [jumlah], "Harga Total": [harga_total]})
+    data = load_data(file_name)
+    data = pd.concat([data, new_data], ignore_index=True)
+    data.to_csv(file_name, index=False)
 
-    # Menampilkan Data Produk
-    st.subheader('Daftar Produk')
-    st.write(produk_df)
+# Streamlit UI
+st.title("Aplikasi UMKM F&B - Pencatatan Transaksi & Pengeluaran")
 
-    # Menambah produk ke keranjang
-    cart = []
-    st.subheader('Tambah Produk ke Keranjang')
+menu = ["Input Transaksi", "Input Pengeluaran", "Lihat Transaksi", "Lihat Pengeluaran"]
+choice = st.sidebar.selectbox("Pilih Menu", menu)
 
-    produk_terpilih = st.selectbox('Pilih Produk', produk_df['Nama Produk'])
-    jumlah_terpilih = st.number_input('Jumlah', min_value=1, max_value=50, step=1)
+# Input Transaksi
+if choice == "Input Transaksi":
+    st.header("Tambah Transaksi")
+    tanggal = st.date_input("Tanggal Transaksi", datetime.today())
+    deskripsi = st.text_input("Deskripsi Barang")
+    jumlah = st.number_input("Jumlah", min_value=1)
+    harga_total = st.number_input("Harga Total", min_value=1)
+    
+    if st.button("Simpan Transaksi"):
+        add_transaction(tanggal, deskripsi, jumlah, harga_total, TRANSAKSI_FILE)
+        st.success("Transaksi berhasil disimpan!")
 
-    if st.button('Tambah ke Keranjang'):
-        produk = produk_df[produk_df['Nama Produk'] == produk_terpilih].iloc[0]
-        item = {
-            'nama': produk['Nama Produk'],
-            'harga': produk['Harga'],
-            'jumlah': jumlah_terpilih
-        }
-        cart.append(item)
-        st.success(f'Produk {produk_terpilih} berhasil ditambahkan ke keranjang!')
+# Input Pengeluaran
+elif choice == "Input Pengeluaran":
+    st.header("Tambah Pengeluaran Bahan Baku")
+    tanggal = st.date_input("Tanggal Pengeluaran", datetime.today())
+    deskripsi = st.text_input("Deskripsi Pengeluaran")
+    jumlah = st.number_input("Jumlah", min_value=1)
+    harga_total = st.number_input("Harga Total", min_value=1)
+    
+    if st.button("Simpan Pengeluaran"):
+        add_expense(tanggal, deskripsi, jumlah, harga_total, PENGELUARAN_FILE)
+        st.success("Pengeluaran berhasil disimpan!")
 
-    # Menampilkan Keranjang Belanja
-    st.subheader('Keranjang Belanja')
-    if cart:
-        cart_df = pd.DataFrame(cart)
-        st.write(cart_df)
+# Lihat Transaksi
+elif choice == "Lihat Transaksi":
+    st.header("Data Transaksi")
+    data_transaksi = load_data(TRANSAKSI_FILE)
+    st.write(data_transaksi)
 
-        # Hitung Total
-        total = hitung_total(cart)
-        st.write(f'Total Pembayaran: Rp {total}')
-    else:
-        st.write('Keranjang masih kosong.')
-
-    # Menyelesaikan Transaksi
-    if st.button('Selesaikan Transaksi'):
-        if cart:
-            st.write('Transaksi selesai! Terima kasih telah berbelanja.')
-            cart.clear()  # Kosongkan keranjang setelah transaksi selesai
-        else:
-            st.warning('Keranjang masih kosong. Tambahkan produk terlebih dahulu.')
+# Lihat Pengeluaran
+elif choice == "Lihat Pengeluaran":
+    st.header("Data Pengeluaran")
+    data_pengeluaran = load_data(PENGELUARAN_FILE)
+    st.write(data_pengeluaran)
