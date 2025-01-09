@@ -1,4 +1,5 @@
-import streamlit as st
+import tkinter as tk
+from tkinter import ttk, messagebox
 import pandas as pd
 
 # Data awal
@@ -12,39 +13,101 @@ data_keuangan = {
 # Membuat DataFrame
 df = pd.DataFrame(data_keuangan)
 
-st.title("Manajemen Keuangan UMKM")
-
-# Input data transaksi
-st.subheader("Tambah Transaksi")
-tanggal = st.text_input("Tanggal (YYYY-MM-DD)")
-jenis = st.selectbox("Jenis Transaksi", ["Pendapatan", "Pengeluaran"])
-keterangan = st.text_input("Keterangan")
-jumlah = st.text_input("Jumlah (Rp)")
-
-if st.button("Tambah Transaksi"):
+def tambah_transaksi():
+    """Fungsi untuk menambahkan transaksi ke DataFrame."""
+    global df
+    tanggal = entry_tanggal.get()
+    jenis = combo_jenis.get()
+    keterangan = entry_keterangan.get()
+    jumlah = entry_jumlah.get()
+    
     if not (tanggal and jenis and keterangan and jumlah):
-        st.error("Semua kolom harus diisi!")
-    else:
-        try:
-            jumlah = float(jumlah)
-            new_data = {"Tanggal": tanggal, "Jenis": jenis, "Keterangan": keterangan, "Jumlah": jumlah}
-            global df
-            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-            st.success("Transaksi berhasil ditambahkan!")
-        except ValueError:
-            st.error("Jumlah harus berupa angka!")
+        messagebox.showerror("Error", "Semua kolom harus diisi!")
+        return
 
-# Menampilkan laporan keuangan
-st.subheader("Laporan Keuangan")
-if st.button("Lihat Laporan"):
+    try:
+        jumlah = float(jumlah)
+    except ValueError:
+        messagebox.showerror("Error", "Jumlah harus berupa angka!")
+        return
+
+    transaksi = {
+        "Tanggal": tanggal,
+        "Jenis": jenis,
+        "Keterangan": keterangan,
+        "Jumlah": jumlah
+    }
+    df = pd.concat([df, pd.DataFrame([transaksi])], ignore_index=True)
+    messagebox.showinfo("Sukses", "Transaksi berhasil ditambahkan!")
+    clear_entries()
+
+def tampilkan_laporan():
+    """Fungsi untuk menampilkan laporan keuangan."""
+    global df
     if df.empty:
-        st.info("Belum ada data keuangan.")
-    else:
-        st.write(df)
-        total_pendapatan = df[df["Jenis"] == "Pendapatan"]["Jumlah"].sum()
-        total_pengeluaran = df[df["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
-        saldo = total_pendapatan - total_pengeluaran
+        messagebox.showinfo("Laporan Keuangan", "Belum ada data keuangan.")
+        return
+    
+    total_pendapatan = df[df["Jenis"] == "Pendapatan"]["Jumlah"].sum()
+    total_pengeluaran = df[df["Jenis"] == "Pengeluaran"]["Jumlah"].sum()
+    saldo = total_pendapatan - total_pengeluaran
 
-        st.write(f"**Total Pendapatan:** Rp {total_pendapatan:.2f}")
-        st.write(f"**Total Pengeluaran:** Rp {total_pengeluaran:.2f}")
-        st.write(f"**Saldo Akhir:** Rp {saldo:.2f}")
+    laporan = df.to_string(index=False)
+    laporan += f"\n\nTotal Pendapatan: Rp {total_pendapatan:.2f}"
+    laporan += f"\nTotal Pengeluaran: Rp {total_pengeluaran:.2f}"
+    laporan += f"\nSaldo Akhir: Rp {saldo:.2f}"
+
+    messagebox.showinfo("Laporan Keuangan", laporan)
+
+def clear_entries():
+    """Mengosongkan semua input form."""
+    entry_tanggal.delete(0, tk.END)
+    combo_jenis.set("")
+    entry_keterangan.delete(0, tk.END)
+    entry_jumlah.delete(0, tk.END)
+
+# Membuat jendela utama
+root = tk.Tk()
+root.title("Manajemen Keuangan UMKM")
+root.geometry("400x400")
+root.resizable(False, False)
+
+# Label judul
+title_label = tk.Label(root, text="Manajemen Keuangan UMKM", font=("Arial", 16, "bold"))
+title_label.pack(pady=10)
+
+# Form input
+frame_form = tk.Frame(root)
+frame_form.pack(pady=10)
+
+tk.Label(frame_form, text="Tanggal (YYYY-MM-DD):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+entry_tanggal = tk.Entry(frame_form, width=30)
+entry_tanggal.grid(row=0, column=1, padx=5, pady=5)
+
+tk.Label(frame_form, text="Jenis Transaksi:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+combo_jenis = ttk.Combobox(frame_form, values=["Pendapatan", "Pengeluaran"], width=28)
+combo_jenis.grid(row=1, column=1, padx=5, pady=5)
+
+tk.Label(frame_form, text="Keterangan:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+entry_keterangan = tk.Entry(frame_form, width=30)
+entry_keterangan.grid(row=2, column=1, padx=5, pady=5)
+
+tk.Label(frame_form, text="Jumlah (Rp):").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+entry_jumlah = tk.Entry(frame_form, width=30)
+entry_jumlah.grid(row=3, column=1, padx=5, pady=5)
+
+# Tombol
+frame_buttons = tk.Frame(root)
+frame_buttons.pack(pady=10)
+
+btn_tambah = tk.Button(frame_buttons, text="Tambah Transaksi", command=tambah_transaksi, width=18, bg="green", fg="white")
+btn_tambah.grid(row=0, column=0, padx=5, pady=5)
+
+btn_laporan = tk.Button(frame_buttons, text="Lihat Laporan", command=tampilkan_laporan, width=18, bg="blue", fg="white")
+btn_laporan.grid(row=0, column=1, padx=5, pady=5)
+
+btn_keluar = tk.Button(root, text="Keluar", command=root.quit, width=40, bg="red", fg="white")
+btn_keluar.pack(pady=10)
+
+# Menjalankan aplikasi
+root.mainloop()
