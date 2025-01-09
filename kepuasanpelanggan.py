@@ -1,41 +1,89 @@
-import streamlit as st
+import sqlite3
 import pandas as pd
+import streamlit as st
 
-# Fungsi untuk mengolah data kepuasan pelanggan
-def analyze_feedback(feedback_data):
-    # Menghitung rata-rata skor kepuasan
-    average_score = feedback_data['Score'].mean()
-    
-    # Menghitung distribusi nilai skor
-    score_distribution = feedback_data['Score'].value_counts().sort_index()
-    
-    return average_score, score_distribution
+# Membuat database dan tabel jika belum ada
+def create_db():
+    conn = sqlite3.connect('transactions.db')
+    cursor = conn.cursor()
 
-# Streamlit UI
-st.title('Aplikasi Analisis Kepuasan Pelanggan')
+    # Membuat tabel transaksi jika belum ada
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT,
+        amount REAL,
+        payment_status TEXT,
+        transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
 
-# Upload file CSV dengan data feedback pelanggan
-uploaded_file = st.file_uploader("Unggah File Feedback Pelanggan (CSV)", type="csv")
+    conn.commit()
+    conn.close()
 
-if uploaded_file is not None:
-    # Membaca data feedback pelanggan
-    feedback_data = pd.read_csv(uploaded_file)
-    
-    # Tampilkan data jika ingin
-    st.write("Data Feedback Pelanggan:")
-    st.write(feedback_data)
-    
-    # Pastikan ada kolom 'Score'
-    if 'Score' in feedback_data.columns:
-        average_score, score_distribution = analyze_feedback(feedback_data)
-        
-        # Menampilkan hasil analisis
-        st.write(f"Rata-rata Skor Kepuasan Pelanggan: {average_score:.2f}")
-        
-        # Menampilkan distribusi nilai skor
-        st.write("Distribusi Skor Kepuasan Pelanggan:")
-        st.bar_chart(score_distribution)
-    else:
-        st.warning("Kolom 'Score' tidak ditemukan dalam data!")
-else:
-    st.info("Silakan unggah file CSV yang berisi data feedback pelanggan.")
+# Fungsi untuk menambah transaksi
+def add_transaction(customer_name, amount, payment_status):
+    conn = sqlite3.connect('transactions.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    INSERT INTO transactions (customer_name, amount, payment_status)
+    VALUES (?, ?, ?)
+    ''', (customer_name, amount, payment_status))
+
+    conn.commit()
+    conn.close()
+
+# Fungsi untuk mengambil data transaksi
+def get_transactions():
+    conn = sqlite3.connect('transactions.db')
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM transactions')
+    transactions = cursor.fetchall()
+
+    conn.close()
+
+    # Mengubah data menjadi DataFrame untuk tampil lebih rapi
+    df = pd.DataFrame(transactions, columns=["ID", "Customer Name", "Amount", "Payment Status", "Transaction Date"])
+    return df
+
+# Fungsi untuk menampilkan transaksi
+def display_transactions():
+    df = get_transactions()
+    st.dataframe(df)
+
+# Fungsi untuk menambahkan transaksi baru
+def handle_add_transaction():
+    st.subheader("Add New Transaction")
+
+    # Input data dari pengguna
+    customer_name = st.text_input("Customer Name")
+    amount = st.number_input("Amount", min_value=0.0, format="%.2f")
+    payment_status = st.selectbox("Payment Status", ["Paid", "Pending"])
+
+    # Tombol submit
+    if st.button("Add Transaction"):
+        if customer_name and amount > 0:
+            add_transaction(customer_name, amount, payment_status)
+            st.success("Transaction Added Successfully!")
+        else:
+            st.error("Please enter all fields correctly.")
+
+# Set up tampilan Streamlit
+st.title("UMKM Transaction Management System")
+st.sidebar.title("Menu")
+menu = st.sidebar.selectbox("Choose an option", ["Home", "Add Transaction", "View Transactions"])
+
+create_db()  # Membuat database dan tabel
+
+if menu == "Home":
+    st.header("Welcome to the UMKM Transaction System")
+    st.write("""
+    This system helps manage transactions for small businesses. You can add new transactions, view transaction history, 
+    and track payment statuses. Please use the menu on the sidebar to navigate.
+    """)
+elif menu == "Add Transaction":
+    handle_add_transaction()
+elif menu == "View Transactions":
+    display_transactions()
