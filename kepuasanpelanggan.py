@@ -1,93 +1,50 @@
-# app.py
-
-import qrcode
-import cv2
-from pyzbar.pyzbar import decode
-from PIL import Image
-import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime, timedelta
 
-# Fungsi untuk membuat data dummy transaksi
-def create_dummy_database():
-    data = {
-        "order_id": [123456 + i for i in range(10)],
-        "amount": [10000 * (i + 1) for i in range(10)],
-        "status": ["unpaid"] * 5 + ["paid"] * 3 + ["not found"] * 2,
-        "payment_url": [
-            f"https://example.com/pay?amount={10000 * (i + 1)}&order_id={123456 + i}"
-            for i in range(8)
-        ] + ["invalid_url_1", "invalid_url_2"],
-    }
-    return pd.DataFrame(data)
+# Data dummy untuk pelanggan
+data = {
+    'Nama': ['Pelanggan A', 'Pelanggan B', 'Pelanggan C', 'Pelanggan D'],
+    'Status Pembayaran': ['Belum Bayar', 'Sudah Bayar', 'Belum Bayar', 'Belum Bayar'],
+    'Tanggal Pembayaran Terakhir': ['2024-01-01', '2024-01-02', '2024-01-08', '2024-01-07'],
+    'Batas Waktu Pembayaran': ['2024-01-10', '2024-01-15', '2024-01-09', '2024-01-10']
+}
 
-# Fungsi untuk membuat QR Code
-def generate_qr_code(payment_data, file_name="payment_qr.png"):
-    qr = qrcode.make(payment_data)
-    qr.save(file_name)
-    return file_name
+# Mengubah data ke DataFrame
+df = pd.DataFrame(data)
 
-# Fungsi untuk memindai QR Code
-def scan_qr_code(file_name):
-    img = cv2.imread(file_name)
-    decoded_objects = decode(img)
-    for obj in decoded_objects:
-        data = obj.data.decode("utf-8")
-        return data
-    return None
+# Mengonversi kolom Tanggal menjadi datetime
+df['Tanggal Pembayaran Terakhir'] = pd.to_datetime(df['Tanggal Pembayaran Terakhir'])
+df['Batas Waktu Pembayaran'] = pd.to_datetime(df['Batas Waktu Pembayaran'])
 
-# Fungsi untuk memverifikasi pembayaran berdasarkan URL
-def verify_payment(database, payment_url):
-    match = database[database["payment_url"] == payment_url]
-    if not match.empty:
-        index = match.index[0]
-        if database.at[index, "status"] == "unpaid":
-            database.at[index, "status"] = "paid"
-            return "Verified: Paid"
-        elif database.at[index, "status"] == "paid":
-            return "Already Paid"
-    return "Not Found"
+# Fungsi untuk cek pelanggan yang belum bayar dan dekat deadline
+def check_payment_status(df):
+    today = datetime.today()
 
-# Fungsi untuk simulasi verifikasi pembayaran
-def simulate_verification(database):
-    results = []
-    for idx, row in database.iterrows():
-        qr_file = f"payment_qr_{idx}.png"
-        generate_qr_code(row["payment_url"], qr_file)
-        scanned_data = scan_qr_code(qr_file)
-        verification_status = verify_payment(database, scanned_data or "Invalid QR Code")
-        results.append([idx + 1, scanned_data or "Invalid QR Code", verification_status])
-    return results, database
-
-# Fungsi utama untuk menampilkan dashboard dengan Streamlit
-def main():
-    st.title("Payment Verification Dashboard")
+    # Membuat kolom untuk menentukan apakah sudah dekat deadline (misalnya 2 hari sebelum batas waktu)
+    df['Dekat Deadline'] = (df['Batas Waktu Pembayaran'] - today).dt.days <= 2
     
-    # Membuat database transaksi dummy
-    database = create_dummy_database()
-    st.subheader("Initial Database")
-    st.dataframe(database)
+    # Filter pelanggan yang belum bayar dan dekat deadline
+    filtered_df = df[(df['Status Pembayaran'] == 'Belum Bayar') & (df['Dekat Deadline'] == True)]
+    
+    return filtered_df
 
-    # Menjalankan simulasi verifikasi pembayaran
-    st.subheader("Simulating Payment Verification...")
-    results, updated_database = simulate_verification(database)
-    
-    # Menampilkan hasil verifikasi
-    st.subheader("Verification Results")
-    results_df = pd.DataFrame(results, columns=["QR Code Index", "Payment URL", "Verification Status"])
-    st.dataframe(results_df)
-    
-    # Menampilkan database yang diperbarui
-    st.subheader("Updated Database")
-    st.dataframe(updated_database)
-    
-    # Visualisasi data
-    st.subheader("Data Visualization")
-    status_counts = updated_database["status"].value_counts()
-    st.bar_chart(status_counts)
-    st.text("Status Distribution:")
-    for status, count in status_counts.items():
-        st.text(f"{status}: {count}")
+# Membuat UI dengan Streamlit
+st.title('Pemberitahuan Pembayaran')
 
-if __name__ == "__main__":
-    main()
+st.write("Berikut adalah daftar pelanggan yang belum membayar dan sudah mendekati batas waktu:")
+
+# Menampilkan data pelanggan yang belum membayar dan dekat deadline
+payment_alerts = check_payment_status(df)
+if not payment_alerts.empty:
+    st.write(payment_alerts[['Nama', 'Batas Waktu Pembayaran']])
+else:
+    st.write("Tidak ada pelanggan yang perlu diberi pemberitahuan saat ini.")
+
+# Simulasi pengiriman pesan otomatis
+if not payment_alerts.empty:
+    for index, row in payment_alerts.iterrows():
+        st.write(f"Pesan untuk {row['Nama']}:")
+        st.write(f"Hi {row['Nama']}, kami ingin mengingatkan Anda bahwa pembayaran Anda dengan batas waktu {row['Batas Waktu Pembayaran'].strftime('%Y-%m-%d')} sudah dekat. Segera lakukan pembayaran untuk menghindari keterlambatan.")
+else:
+    st.write("Semua pelanggan sudah membayar atau tidak dekat dengan deadline.")
