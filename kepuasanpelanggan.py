@@ -1,48 +1,57 @@
 import streamlit as st
 import pandas as pd
 
-# Simulasi database produk dan transaksi
-products = {'ID': [1, 2, 3],
-            'Product': ['Nasi Goreng', 'Mie Goreng', 'Sate Ayam'],
-            'Price': [15000, 12000, 18000]}
-df_products = pd.DataFrame(products)
+# Membaca data produk dari file Excel
+produk_df = pd.read_excel('data/produk.xlsx')
 
-# Inisialisasi transaksi jika file belum ada
-try:
-    df_transactions = pd.read_csv('data/transactions.csv')
-except FileNotFoundError:
-    df_transactions = pd.DataFrame(columns=['Transaction ID', 'Product', 'Quantity', 'Total'])
+# Fungsi untuk menghitung total transaksi
+def hitung_total(cart):
+    total = 0
+    for item in cart:
+        total += item['harga'] * item['jumlah']
+    return total
 
-# Fungsi untuk menambahkan transaksi
-def add_transaction(df_transactions, product, quantity):
-    product_data = df_products[df_products['Product'] == product].iloc[0]
-    total = product_data['Price'] * quantity
-    new_transaction = {
-        'Transaction ID': len(df_transactions) + 1,
-        'Product': product,
-        'Quantity': quantity,
-        'Total': total
+# Judul Aplikasi
+st.title('Aplikasi Kasir UMKM F&B')
+
+# Menampilkan Data Produk
+st.subheader('Daftar Produk')
+st.write(produk_df)
+
+# Menambah produk ke keranjang
+cart = []
+st.subheader('Tambah Produk ke Keranjang')
+
+produk_terpilih = st.selectbox('Pilih Produk', produk_df['Nama Produk'])
+jumlah_terpilih = st.number_input('Jumlah', min_value=1, max_value=50, step=1)
+
+if st.button('Tambah ke Keranjang'):
+    produk = produk_df[produk_df['Nama Produk'] == produk_terpilih].iloc[0]
+    item = {
+        'nama': produk['Nama Produk'],
+        'harga': produk['Harga'],
+        'jumlah': jumlah_terpilih
     }
-    df_transactions = pd.concat([df_transactions, pd.DataFrame([new_transaction])], ignore_index=True)
-    df_transactions.to_csv('data/transactions.csv', index=False)
-    return df_transactions
+    cart.append(item)
+    st.success(f'Produk {produk_terpilih} berhasil ditambahkan ke keranjang!')
 
-# Aplikasi Streamlit
-st.title('UMKM F&B Management')
+# Menampilkan Keranjang Belanja
+st.subheader('Keranjang Belanja')
+if cart:
+    cart_df = pd.DataFrame(cart)
+    st.write(cart_df)
 
-# Menampilkan produk
-st.header('Daftar Produk')
-st.write(df_products)
+    # Hitung Total
+    total = hitung_total(cart)
+    st.write(f'Total Pembayaran: Rp {total}')
+else:
+    st.write('Keranjang masih kosong.')
 
-# Formulir untuk menambahkan transaksi
-st.header('Tambah Transaksi')
-product_option = st.selectbox('Pilih Produk', df_products['Product'])
-quantity = st.number_input('Jumlah', min_value=1, step=1)
+# Menyelesaikan Transaksi
+if st.button('Selesaikan Transaksi'):
+    if cart:
+        st.write('Transaksi selesai! Terima kasih telah berbelanja.')
+        cart.clear()  # Kosongkan keranjang setelah transaksi selesai
+    else:
+        st.warning('Keranjang masih kosong. Tambahkan produk terlebih dahulu.')
 
-if st.button('Tambah Transaksi'):
-    df_transactions = add_transaction(df_transactions, product_option, quantity)
-    st.success('Transaksi berhasil ditambahkan')
-
-# Menampilkan laporan transaksi
-st.header('Laporan Transaksi')
-st.write(df_transactions)
