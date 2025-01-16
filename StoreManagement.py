@@ -74,36 +74,6 @@ elif menu == "Add Product":
         else:
             st.error("Product ID and Name are required.")
 
-elif menu == "Update Stock":
-    # Bagian Update Stock / Price
-st.subheader("Update Stock / Price")
-
-# Pilih produk untuk diperbarui
-selected_product_name = st.selectbox("Select Product", df["Name"])
-selected_product = df[df["Name"] == selected_product_name].iloc[0]
-
-# Masukkan stok baru
-new_stock = st.number_input("New Stock", min_value=0, step=1, value=int(selected_product["Stock"]))
-
-# Masukkan harga baru
-new_price = st.number_input(
-    "New Price",
-    min_value=0.0,
-    step=0.01,
-    value=float(selected_product["Price"])
-)
-
-# Tombol untuk mengupdate stok dan harga
-if st.button("Update Product"):
-    # Update stok dan harga di DataFrame
-    df.loc[df["Name"] == selected_product_name, "Stock"] = new_stock
-    df.loc[df["Name"] == selected_product_name, "Price"] = new_price
-    
-    st.success(f"Product '{selected_product_name}' updated successfully!")
-
-    else:
-        st.write("No products available to update.")
-
 elif menu == "Cashier":
     st.header("Cashier System")
     if not st.session_state.df.empty:
