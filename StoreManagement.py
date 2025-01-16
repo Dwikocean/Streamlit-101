@@ -26,7 +26,7 @@ def apply_discount(dataframe):
 st.title("Fashion Store Management System")
 
 # Sidebar Menu
-menu = st.sidebar.selectbox("Menu", ["Dashboard", "Add Product", "Update Stock", "Cashier", "Sales Report", "Analysis"])
+menu = st.sidebar.selectbox("Menu", ["Dashboard", "Add Product", "Cashier", "Sales Report", "Analysis"])
 
 if menu == "Dashboard":
     st.header("Product Dashboard")
